@@ -14,7 +14,15 @@ namespace ProcessadorTarefas.Entidades
 
     public class Tarefa : ITarefa
     {
-        public int Id { get; set; }
+        public Tarefa(IEnumerable<Subtarefa> subtarefasPendentes, IEnumerable<Subtarefa> subtarefasExecutadas)
+        {
+            Id = Interlocked.Increment(ref _idCounter);
+            SubtarefasPendentes = subtarefasPendentes;
+            SubtarefasExecutadas = subtarefasExecutadas;
+        }
+
+        static private int _idCounter = 0; 
+        public int Id { get; private set; }
         public EstadoTarefa Estado { get; set; }
         public DateTime IniciadaEm { get; set; }
         public DateTime EncerradaEm { get; set; }
