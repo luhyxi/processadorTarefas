@@ -14,11 +14,10 @@ namespace ProcessadorTarefas.Entidades
 
     public class Tarefa : ITarefa
     {
-        public Tarefa(IEnumerable<Subtarefa> subtarefasPendentes, IEnumerable<Subtarefa> subtarefasExecutadas)
+        public Tarefa()
         {
             Id = Interlocked.Increment(ref _idCounter);
-            SubtarefasPendentes = subtarefasPendentes;
-            SubtarefasExecutadas = subtarefasExecutadas;
+            SubtarefasPendentes = GerarQuantidadeSubtarefas();
         }
 
         static private int _idCounter = 0; 
@@ -27,7 +26,16 @@ namespace ProcessadorTarefas.Entidades
         public DateTime IniciadaEm { get; set; }
         public DateTime EncerradaEm { get; set; }
         public IEnumerable<Subtarefa> SubtarefasPendentes { get; set; }
-        public IEnumerable<Subtarefa> SubtarefasExecutadas { get; set; }
+        public IEnumerable<Subtarefa> SubtarefasExecutadas
+        {
+            get => SubtarefasPendentes.TakeWhile(x => x.DuracaoZerada is false);
+        }
+
+        private int QuantidadeSubtarefas => Random.Shared.Next(10, 100);
+
+        public IEnumerable<Subtarefa> GerarQuantidadeSubtarefas() =>
+            Enumerable.Range(1, QuantidadeSubtarefas)
+                .Select(_ => new Subtarefa());
     }
 
 }
