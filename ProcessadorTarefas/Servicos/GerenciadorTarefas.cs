@@ -1,7 +1,8 @@
+using ProcessadorTarefas.Development_Stuff;
 using ProcessadorTarefas.Entidades;
 using SOLID_Example.Interfaces;
 
-namespace ProcessadorTarefas.Servicos
+namespace ProcessadorTarefas.Entity.Servicos
 {
     /// <summary>
     /// Gerencia as operações de tarefas.
@@ -33,7 +34,9 @@ namespace ProcessadorTarefas.Servicos
             }
             catch (Exception e)
             {
+                Console.WriteLine();
                 Console.WriteLine($"Ocorreu o seguinte erro ao tentar criar a tarefa: {e}");
+                
                 throw;
             }
         }
@@ -65,7 +68,7 @@ namespace ProcessadorTarefas.Servicos
         public Task Cancelar(int idTarefa)
         {
             var tarefaConsultada = Consultar(idTarefa).Result;
-            Repositorio.Update(tarefaConsultada, tarefa => 
+            Repositorio.Update(tarefaConsultada, tarefa =>
             {
                 tarefa.CancelarTarefa();
                 return tarefa;
@@ -90,5 +93,57 @@ namespace ProcessadorTarefas.Servicos
         public Task<IEnumerable<Tarefa>> ListarInativas(IRepository<Tarefa> _repositorio) =>
             Task.FromResult(_repositorio.GetAll()
                 .Where(tarefa => tarefa.Estado == EstadoTarefa.Cancelada || tarefa.Estado == EstadoTarefa.Concluida));
+
+        /// <summary>
+        /// Começa a fazer todas as subtarefas do repositorio.
+        /// </summary>
+        /// <returns>Começa a rodar todas as Subtarefas.</returns>
+        
+        public async Task RodarTodasSubtarefasAsync()
+        {
+            var tarefas = Repositorio.GetAll().ToList();
+            foreach (var tarefa in tarefas)
+            {
+            }
+        }
+        
+        public async Task RodarSubtarefasPorId(int idTarefa)
+        {
+            try
+            {
+                // Consulta a tarefa pelo ID
+                var tarefa = await Consultar(idTarefa);
+
+                // Verifica se a tarefa foi encontrada
+                if (tarefa != null)
+                {
+                    // Executa as subtarefas da tarefa
+                    await tarefa.RunSubtarefas();
+                }
+                else
+                {
+                    Console.WriteLine($"Tarefa com ID {idTarefa} não encontrada.");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Ocorreu o seguinte erro ao tentar rodar as subtarefas da tarefa com ID {idTarefa}: {e}");
+                throw;
+            }
+        }
+
+            
+        /// <summary>
+        /// Cancela todas tarefas do repositorio.
+        /// </summary>
+        public Task CancelaTodasTarefas()
+        {
+            foreach (var tarefa in Repositorio.GetAll())
+            {
+                Cancelar(tarefa.Id);
+            }
+            return Task.CompletedTask;
+        }
+        
     }
 }

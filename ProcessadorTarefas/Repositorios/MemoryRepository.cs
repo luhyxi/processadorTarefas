@@ -1,29 +1,42 @@
 using System.Collections;
 using ProcessadorTarefas.Entidades;
 
-namespace SOLID_Example.Interfaces;
-
-public class MemoryRepository:IRepository<Tarefa>
+namespace SOLID_Example.Interfaces
 {
-    private List<Tarefa> _tarefas;
-    public IEnumerable<Tarefa> GetAll() => _tarefas;
-    public void Add(Tarefa entity) => _tarefas.Add(entity);
-
-    public Tarefa? GetById(int id) => _tarefas.FirstOrDefault(t => t.Id == id);
-
-    public void Update(Tarefa entity)
+    public class MemoryRepository : IRepository<Tarefa>
     {
-        int index = _tarefas.FindIndex(t => t.Id == entity.Id);
+        public List<Tarefa> _tarefas { get; set; } // Make the list private
 
-        if (index != -1)
-            _tarefas[index] = entity;
-        else
-            throw new ArgumentException("Tarefa não encontrada.");
+        public MemoryRepository()
+        {
+            _tarefas = new List<Tarefa>(); // Initialize the list
+        }
+
+        public IEnumerable<Tarefa> GetAll() => _tarefas;
+
+        public void Add(Tarefa entity)
+        {
+            _tarefas.Add(entity); // Add the entity to the list
+        }
+
+        public Tarefa? GetById(int id) => _tarefas.FirstOrDefault(t => t.Id == id);
+
+        public async Task Update(Tarefa entity) // Add 'async' to the method signature
+        {
+            int index = _tarefas.FindIndex(t => t.Id == entity.Id);
+
+            if (index != -1)
+                _tarefas[index] = entity;
+            else
+                throw new ArgumentException("Tarefa não encontrada.");
+        }
+
+        public async Task Update(Tarefa entity, Func<Tarefa, Tarefa> Modificacao)
+        {
+            Tarefa modifiedEntity = Modificacao(entity);
+            await Update(modifiedEntity);
+        }
+
     }
 
-    public void Update(Tarefa entity, Func<Tarefa, Tarefa> Modificacao)
-    {
-        Tarefa modifiedEntity = Modificacao(entity);
-        Update(modifiedEntity);
-    }
 }

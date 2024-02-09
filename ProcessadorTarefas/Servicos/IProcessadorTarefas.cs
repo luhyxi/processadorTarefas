@@ -1,4 +1,4 @@
-﻿namespace ProcessadorTarefas.Servicos
+﻿namespace ProcessadorTarefas.Entity.Servicos
 {
     internal interface IProcessadorTarefas
     {

@@ -2,7 +2,7 @@
 using ProcessadorTarefas.Entidades;
 using SOLID_Example.Interfaces;
 
-namespace ProcessadorTarefas.Servicos
+namespace ProcessadorTarefas.Entity.Servicos
 {
     internal interface IGerenciadorTarefas
     {

@@ -9,18 +9,26 @@ namespace ProcessadorTarefas.Development_Stuff
     {
         public TimeSpan SubTarefaMaxDuracao { get; set; }
         public int TarefaMaxSubtarefa { get; set; }
-        
-        public static TarefaOptions CreateFromConfiguration()
+    }
+
+    public interface ITarefaOptionsProvider
+    {
+        TarefaOptions GetTarefaOptions();
+    }
+
+    public class TarefaOptionsProvider : ITarefaOptionsProvider
+    {
+        private readonly IConfiguration _configuration;
+
+        public TarefaOptionsProvider(IConfiguration configuration)
         {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            _configuration = configuration;
+        }
 
-            IConfigurationRoot configuration = builder.Build();
-
+        public TarefaOptions GetTarefaOptions()
+        {
             var tarefaOptions = new TarefaOptions();
-            configuration.GetSection("TarefaOptions").Bind(tarefaOptions);
-
+            _configuration.GetSection("TarefaOptions").Bind(tarefaOptions);
             return tarefaOptions;
         }
     }
