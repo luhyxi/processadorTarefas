@@ -1,7 +1,10 @@
-﻿namespace ProcessadorTarefas.Entidades
+﻿using ProcessadorTarefas.Development_Stuff;
+
+namespace ProcessadorTarefas.Entidades
 {
     public interface ITarefa
     {
+        TarefaOptions MyOptions { get; set; }
         int Id { get; }
         EstadoTarefa Estado { get; set; }
         DateTime IniciadaEm { get; set; }
@@ -22,13 +25,14 @@
             SubtarefasPendentes = GerarQuantidadeSubtarefas();
         }
 
+        public TarefaOptions MyOptions { get; set; }
         public int Id { get; private set; }
         public EstadoTarefa Estado { get; set; }
 
         public DateTime IniciadaEm { get; set; }
         public DateTime EncerradaEm { get; set; }
         public IEnumerable<Subtarefa> SubtarefasPendentes { get; set; }
-        public int QuantSubtarefasProcessadas => Random.Shared.Next(10, 30);
+        public int QuantSubtarefasProcessadas => Random.Shared.Next(10, MyOptions.TarefaMaxSubtarefa);
 
         /// <summary>
         /// Gerador de subtarefas sendo executadas baseado em cada Subtarefa que contem a Duracao não zerada
