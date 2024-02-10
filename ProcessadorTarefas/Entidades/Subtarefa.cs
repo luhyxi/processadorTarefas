@@ -11,6 +11,7 @@ namespace ProcessadorTarefas.Entidades
 
         public int DuracaoSeconds { get; private set; }
         public event EventHandler CountdownFinished;
+        public bool IsFinished { get; set; }
 
         public Subtarefa()
         {
@@ -38,7 +39,11 @@ namespace ProcessadorTarefas.Entidades
 
         protected virtual void OnCountdownFinished(EventArgs e)
         {
-            CountdownFinished?.Invoke(this, e);
+            if (!IsFinished) // Check if the event hasn't been fired already
+            {
+                IsFinished = true;
+                CountdownFinished?.Invoke(this, e);
+            }
         }
     }
 

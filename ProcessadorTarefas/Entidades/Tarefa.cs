@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,25 +19,18 @@ namespace ProcessadorTarefas.Entidades
         IEnumerable<Subtarefa> SubtarefasExecutadas { get; }
     }
 
+    [DebuggerDisplay("Id = {Id}, Estado = {Estado}")]
     public class Tarefa : ITarefa
     {
-        private static readonly object IdLock = new object();
         private static int _idCounter = 0;
 
         public Tarefa()
         {
-            lock (IdLock)
-            {
-                Id = ++_idCounter;
-            }
-
+            Id = Interlocked.Increment(ref _idCounter);
             Estado = EstadoTarefa.Criada;
             IniciadaEm = DateTime.Now;
-            SubtarefasIniciais = GerarQuantidadeSubtarefas().ToList();
-            foreach (var subtarefa in SubtarefasIniciais)
-            {
-                subtarefa.CountdownFinished += OnSubtarefaCountdownFinished;
-            }
+            SubtarefasPendentes = new List<Subtarefa>();
+            SubtarefasExecutadas = new List<Subtarefa>();
         }
 
         public int Id { get; private set; }
@@ -43,58 +38,73 @@ namespace ProcessadorTarefas.Entidades
         public DateTime IniciadaEm { get; set; }
         public DateTime? EncerradaEm { get; set; }
         public IEnumerable<Subtarefa> SubtarefasPendentes { get; set; }
+        public IEnumerable<Subtarefa> SubtarefasExecutadas { get; set; }
 
-        public IEnumerable<Subtarefa> SubtarefasConcluidas =>
-            SubtarefasPendentes?.Where(x => x.DuracaoSeconds == 0) ?? Enumerable.Empty<Subtarefa>();
-        public IEnumerable<Subtarefa> SubtarefasNaoConcluidas =>
-            SubtarefasPendentes?.Where(x => x.DuracaoSeconds > 0) ?? Enumerable.Empty<Subtarefa>();
-        public IEnumerable<Subtarefa> SubtarefasIniciais { get; private set; }
+        private const int MaxSubtarefasProcessadas = 3;
+        private const int MaxSubtarefasDuranteCriacao = 20;
 
-        public IEnumerable<Subtarefa> SubtarefasExecutadas =>
-            SubtarefasPendentes?.Where(x => x.DuracaoSeconds > 0).Take(QuantSubtarefasProcessadas) ?? Enumerable.Empty<Subtarefa>();
-
-
-        private int QuantSubtarefasProcessadas => Math.Min(3, SubtarefasPendentes.Count(x => x.DuracaoSeconds > 0));
-
-        private IEnumerable<Subtarefa> GerarQuantidadeSubtarefas()
+        public void AdicionarSubtarefasPendentes()
         {
+            if (Estado == EstadoTarefa.Concluida || Estado == EstadoTarefa.Cancelada)
+            {
+                return;
+            }
             var random = new Random();
-            return Enumerable.Range(1, random.Next(1, 30)).Select(_ => new Subtarefa());
+            var subtarefasList = (List<Subtarefa>)SubtarefasPendentes;
+            subtarefasList.AddRange(Enumerable.Range(1, random.Next(1, MaxSubtarefasDuranteCriacao)).Select(_ => new Subtarefa()));
+            SubtarefasPendentes = subtarefasList;
         }
+
 
         private void OnSubtarefaCountdownFinished(object sender, EventArgs e)
         {
-            if (sender is Subtarefa subtarefa && SubtarefasPendentes.All(x => x.DuracaoSeconds == 0))
+            var subtarefa = sender as Subtarefa;
+            if (subtarefa != null)
+            {
+                SubtarefasPendentes.Where(s => s.IsFinished).ToList();
+            }
+
+            if (!SubtarefasPendentes.Any())
             {
                 EncerrarTarefa();
             }
+            else
+            {
+                RunSubtarefas();
+            }
         }
 
+        
         public async Task RunSubtarefas()
         {
             try
             {
-                // Ensure SubtarefasPendentes is initialized
-                if (SubtarefasPendentes == null)
+                if (Estado == EstadoTarefa.Concluida || Estado == EstadoTarefa.Cancelada)
                 {
-                    throw new InvalidOperationException("SubtarefasPendentes is null.");
+                    return;
+                }
+                if (Estado != EstadoTarefa.Criada && Estado != EstadoTarefa.EmPausa)
+                {
+                    var subtarefasList = SubtarefasPendentes.ToList();
+                    subtarefasList.RemoveAll(s => s.IsFinished);
+                    SubtarefasPendentes = subtarefasList;
                 }
 
-                // Start countdown for each subtask
-                foreach (var subtarefa in SubtarefasIniciais)
+                if (!SubtarefasPendentes.Any())
+                {
+                    EncerrarTarefa();
+                    return;
+                }
+
+                MudarEstado(EstadoTarefa.EmExecucao);
+
+                var subtarefasExecutadas = SubtarefasPendentes.OrderBy(s => s.DuracaoSeconds).Take(MaxSubtarefasProcessadas);
+
+                foreach (var subtarefa in subtarefasExecutadas)
                 {
                     subtarefa.CountdownFinished += OnSubtarefaCountdownFinished;
-                    await Task.Run(() => subtarefa.RunCountdown());
+                    subtarefa.RunCountdown();
                 }
-
-                // Wait for all subtasks to complete
-                while (SubtarefasPendentes.Any())
-                {
-                    await Task.Delay(100); // Adjust delay as needed
-                }
-
-                // Once all subtasks are completed, encerrar a tarefa
-                EncerrarTarefa();
             }
             catch (Exception ex)
             {
@@ -103,16 +113,20 @@ namespace ProcessadorTarefas.Entidades
             }
         }
 
-        public void EncerrarTarefa()
+        private void MudarEstado(EstadoTarefa novoEstado)
         {
-            EncerradaEm = DateTime.Now;
-            Estado = EstadoTarefa.Concluida;
+            Estado = novoEstado;
         }
 
+        private void EncerrarTarefa()
+        {
+            Estado = EstadoTarefa.Concluida;
+            EncerradaEm = DateTime.Now;
+        }
         public void CancelarTarefa()
         {
+            MudarEstado(EstadoTarefa.Cancelada);
             EncerradaEm = DateTime.Now;
-            Estado = EstadoTarefa.Cancelada;
         }
     }
 }
