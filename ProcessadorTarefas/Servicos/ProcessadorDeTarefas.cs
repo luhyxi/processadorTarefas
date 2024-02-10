@@ -1,7 +1,7 @@
+using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ProcessadorTarefas.Entidades;
 using ProcessadorTarefas.Entity.Servicos;
@@ -12,53 +12,55 @@ namespace ProcessadorTarefas.Servicos
     public class ProcessadorDeTarefas : IProcessadorTarefas
     {
         private readonly GerenciadorTarefas gerenciadorTarefas;
-        private readonly ObservableCollection<Tarefa> TarefasObservableCollection;
+        private readonly IRepository<Tarefa> tarefaRepository;
 
-        private ProcessadorDeTarefas(GerenciadorTarefas gerenciadorTarefas, IRepository<Tarefa> tarefaRepository)
+        private CancellationTokenSource cancellationTokenSource;
+        private bool isProcessing;
+
+        public ProcessadorDeTarefas(GerenciadorTarefas gerenciadorTarefas, IRepository<Tarefa> tarefaRepository)
         {
             this.gerenciadorTarefas = gerenciadorTarefas;
-
-            var tarefas = tarefaRepository.GetAll() ?? Enumerable.Empty<Tarefa>();
-            TarefasObservableCollection = new ObservableCollection<Tarefa>(tarefas);
-            TarefasObservableCollection.CollectionChanged += TarefasObservableCollectionCollectionChanged;
+            this.tarefaRepository = tarefaRepository;
         }
 
-        private void TarefasObservableCollectionCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private async Task ProcessarSubtarefasDeTarefa(Tarefa tarefa, CancellationToken cancellationToken)
         {
-            switch (e.Action)
-            {
-                case NotifyCollectionChangedAction.Add:
-                    // Handle added items
-                    break;
-                case NotifyCollectionChangedAction.Remove:
-                    // Handle removed items
-                    break;
-                case NotifyCollectionChangedAction.Move:
-                    // Handle moved items
-                    break;
-                case NotifyCollectionChangedAction.Reset:
-                    // Handle collection reset
-                    break;
-            }
-        }
-
-        public static ProcessadorDeTarefas Criar(GerenciadorTarefas gerenciadorTarefas, IRepository<Tarefa> tarefaRepository)
-        {
-            return new ProcessadorDeTarefas(gerenciadorTarefas, tarefaRepository);
+            await tarefa.RunSubtarefas();
         }
 
         public async Task Iniciar()
         {
-            await gerenciadorTarefas.RodarTodasSubtarefasAsync();
-            // Implement other necessary logic
+            if (isProcessing)
+                return;
+
+            cancellationTokenSource = new CancellationTokenSource();
+            isProcessing = true;
+
+            try
+            {
+                while (!cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    var tarefas = tarefaRepository.GetAll() ?? Enumerable.Empty<Tarefa>();
+
+                    var processingTasks = tarefas.Select(tarefa => ProcessarSubtarefasDeTarefa(tarefa, cancellationTokenSource.Token));
+                    await Task.WhenAll(processingTasks);
+
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationTokenSource.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                isProcessing = false;
+            }
         }
 
         public async Task Encerrar()
         {
-            await gerenciadorTarefas.CancelaTodasTarefas();
-            // Implement other necessary logic
+            cancellationTokenSource?.Cancel();
+            await Task.Delay(1000);
         }
     }
-
-
 }

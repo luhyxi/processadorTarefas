@@ -19,11 +19,7 @@ namespace ProcessadorTarefas.Entity.Servicos
         {
             Repositorio = repositorio;
         }
-
-        /// <summary>
-        /// Cria uma nova tarefa.
-        /// </summary>
-        /// <returns>Uma tarefa que representa a operação assíncrona.</returns>
+        
         public Task Criar()
         {
             try
@@ -41,11 +37,7 @@ namespace ProcessadorTarefas.Entity.Servicos
             }
         }
 
-        /// <summary>
-        /// Consulta uma tarefa pelo ID.
-        /// </summary>
-        /// <param name="idTarefa">O ID da tarefa.</param>
-        /// <returns>Uma tarefa que representa a operação assíncrona. O valor da tarefa é a Tarefa encontrada.</returns>
+
         public Task<Tarefa> Consultar(int idTarefa)
         {
             try
@@ -60,11 +52,7 @@ namespace ProcessadorTarefas.Entity.Servicos
             }
         }
 
-        /// <summary>
-        /// Cancela uma tarefa pelo ID.
-        /// </summary>
-        /// <param name="idTarefa">O ID da tarefa.</param>
-        /// <returns>Uma tarefa que representa a operação assíncrona. O valor da tarefa é a Tarefa cancelada.</returns>
+
         public Task Cancelar(int idTarefa)
         {
             var tarefaConsultada = Consultar(idTarefa).Result;
@@ -76,34 +64,21 @@ namespace ProcessadorTarefas.Entity.Servicos
             return Task.FromResult(tarefaConsultada);
         }
 
-        /// <summary>
-        /// Lista as tarefas ativas.
-        /// </summary>
-        /// <param name="_repositorio">O repositório de tarefas.</param>
-        /// <returns>Uma tarefa que representa a operação assíncrona. O valor da tarefa é a lista de Tarefas ativas.</returns>
         public Task<IEnumerable<Tarefa>> ListarAtivas(IRepository<Tarefa> _repositorio) =>
             Task.FromResult(_repositorio.GetAll()
                 .Where(tarefa => tarefa.Estado == EstadoTarefa.EmExecucao || tarefa.Estado == EstadoTarefa.EmPausa));
-
-        /// <summary>
-        /// Lista as tarefas inativas.
-        /// </summary>
-        /// <param name="_repositorio">O repositório de tarefas.</param>
-        /// <returns>Uma tarefa que representa a operação assíncrona. O valor da tarefa é a lista de Tarefas inativas.</returns>
+        
         public Task<IEnumerable<Tarefa>> ListarInativas(IRepository<Tarefa> _repositorio) =>
             Task.FromResult(_repositorio.GetAll()
                 .Where(tarefa => tarefa.Estado == EstadoTarefa.Cancelada || tarefa.Estado == EstadoTarefa.Concluida));
-
-        /// <summary>
-        /// Começa a fazer todas as subtarefas do repositorio.
-        /// </summary>
-        /// <returns>Começa a rodar todas as Subtarefas.</returns>
+        
         
         public async Task RodarTodasSubtarefasAsync()
         {
             var tarefas = Repositorio.GetAll().ToList();
             foreach (var tarefa in tarefas)
             {
+                await RodarSubtarefasPorId(tarefa.Id);
             }
         }
         
@@ -117,7 +92,7 @@ namespace ProcessadorTarefas.Entity.Servicos
                 // Verifica se a tarefa foi encontrada
                 if (tarefa != null)
                 {
-                    // Executa as subtarefas da tarefa
+                    tarefa.AdicionarSubtarefasPendentes();
                     await tarefa.RunSubtarefas();
                 }
                 else
@@ -131,19 +106,26 @@ namespace ProcessadorTarefas.Entity.Servicos
                 throw;
             }
         }
-
-            
-        /// <summary>
-        /// Cancela todas tarefas do repositorio.
-        /// </summary>
-        public Task CancelaTodasTarefas()
-        {
-            foreach (var tarefa in Repositorio.GetAll())
-            {
-                Cancelar(tarefa.Id);
-            }
-            return Task.CompletedTask;
-        }
         
+        public async Task CancelaTodasTarefas()
+        {
+            try
+            {
+                // Obtém todas as tarefas do repositório
+                var tarefas = Repositorio.GetAll();
+                // Percorre cada tarefa e chama o método Cancelar
+                foreach (var tarefa in tarefas)
+                {
+                    await Cancelar(tarefa.Id);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Ocorreu o seguinte erro ao tentar cancelar todas as tarefas: {e}");
+                throw;
+            }
+        }
+
+
     }
 }
