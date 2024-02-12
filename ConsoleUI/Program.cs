@@ -6,35 +6,35 @@ using ProcessadorTarefas.Development_Stuff;
 using ProcessadorTarefas.Entity.Servicos;
 using ProcessadorTarefas.Servicos;
 using SOLID_Example.Interfaces;
+using Spectre.Console;
 
 internal class Program
 {
     private static readonly object _consoleLock = new object();
-    
     public static async Task Main(string[] args)
     {
         try
         {
             var gerenciadorTarefas = new GerenciadorTarefas(new MemoryRepository());
-            gerenciadorTarefas.Criar();
 
-            var taskTable = new TableTarefas(gerenciadorTarefas);
+            var taskTable = new UITableTarefas(gerenciadorTarefas);
             taskTable.RenderTable();
 
             ProcessadorDeTarefas processadorDeTarefas = new ProcessadorDeTarefas(gerenciadorTarefas, gerenciadorTarefas.Repositorio);
 
-            Console.WriteLine("Welcome to the Console!");
 
-            var menu = new GerenciadorMenu(gerenciadorTarefas);
+            var menu = new UIGerenciadorMenu(gerenciadorTarefas);
 
-            // Refresh the table periodically
+
+            
+            // Temporizador de refresh do console
             var refreshTimer = new Timer(async (_) =>
             {
                 lock (_consoleLock)
                 {
-                    Console.Clear();
+                    AnsiConsole.Clear();
                     taskTable.RenderTable();
-                    Task.Delay(1000); // Wait for 1 second
+                    Task.Delay(1000);
                 }
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 
@@ -42,7 +42,8 @@ internal class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.ToString());
+            AnsiConsole.WriteLine(ex.ToString());
         }
     }
+
 }

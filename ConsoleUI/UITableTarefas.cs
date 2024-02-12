@@ -3,11 +3,11 @@ using Spectre.Console;
 
 namespace ConsoleUI;
 
-public class TableTarefas
+public class UITableTarefas
 {
     private readonly GerenciadorTarefas _gerenciadorTarefas;
 
-    public TableTarefas(GerenciadorTarefas gerenciadorTarefas)
+    public UITableTarefas(GerenciadorTarefas gerenciadorTarefas)
     {
         _gerenciadorTarefas = gerenciadorTarefas;
     }
