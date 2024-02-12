@@ -20,9 +20,6 @@ public class TableTarefas
         table.AddColumn("Iniciada em");
         table.AddColumn("Encerrada em");
         table.AddColumn("Subtarefas Pendentes");
-        table.AddColumn("Subtarefas Executadas");
-        table.AddColumn("Subtarefas Concluidas");
-        table.AddColumn("Subtarefas Não Concluidas");
 
 
 
@@ -31,13 +28,10 @@ public class TableTarefas
         foreach (var tarefa in tarefasAtivas)
         {
             string subtarefasPendentesCount = tarefa.SubtarefasPendentes?.Count().ToString() ?? "0";
-            string subtarefasExecutadasCount = tarefa.SubtarefasExecutadas?.Count().ToString() ?? "0";
-            string subtarefasConcCount = tarefa.SubtarefasConcluidas?.Count().ToString() ?? "0";
-            string subtarefasNaoConcCount = tarefa.SubtarefasNaoConcluidas?.Count().ToString() ?? "0";
 
 
 
-            table.AddRow(tarefa.Id.ToString(), tarefa.Estado.ToString(), tarefa.IniciadaEm.ToString(), tarefa.EncerradaEm.ToString(), subtarefasPendentesCount, subtarefasExecutadasCount, subtarefasConcCount, subtarefasNaoConcCount);
+            table.AddRow(tarefa.Id.ToString(), tarefa.Estado.ToString(), tarefa.IniciadaEm.ToString(), tarefa.EncerradaEm.ToString(), subtarefasPendentesCount);
         }
 
         AnsiConsole.Render(table);

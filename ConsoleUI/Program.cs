@@ -21,7 +21,7 @@ internal class Program
             var taskTable = new TableTarefas(gerenciadorTarefas);
             taskTable.RenderTable();
 
-            var processadorTarefas = ProcessadorDeTarefas.Criar(gerenciadorTarefas, gerenciadorTarefas.Repositorio);
+            ProcessadorDeTarefas processadorDeTarefas = new ProcessadorDeTarefas(gerenciadorTarefas, gerenciadorTarefas.Repositorio);
 
             Console.WriteLine("Welcome to the Console!");
 
